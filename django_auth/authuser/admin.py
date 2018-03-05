@@ -2,11 +2,12 @@ from django.contrib import admin
 from  django import forms
 from django.contrib.auth.models import Group
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.contrib.auth.forms import ReadOnlyPasswordHashField
 
 from django_auth.authuser.models import AuthUser
 
 
-class UserCreationForm(forms.ModelForm):
+class AuthUserCreationForm(forms.ModelForm):
     password = forms.CharField(label='Password', widget=forms.PasswordInput)
     password_confirm = forms.CharField(label='Passwordconfirmation', widget=forms.PasswordInput)
 
@@ -32,3 +33,34 @@ class UserCreationForm(forms.ModelForm):
 
         return user
 
+class AuthUserChangeForm(forms.ModelForm):
+    password = ReadOnlyPasswordHashField()
+
+    class Meta:
+        model = AuthUser
+        fields = ('email', 'name', 'is_admin', 'is_active')
+
+    def clean_password(self):
+        return self.initial["password"]
+
+class AuthUserAdmin(BaseUserAdmin):
+    form = AuthUserChangeForm
+    add_form = AuthUserCreationForm
+
+    list_display = ('email', 'name', 'is_admin')
+    list_filter = ('is_admin',)
+    fieldsets = (
+        (None, {'fields' : ('email', 'password')}),
+    )
+    add_fieldsets = (
+        (None, {
+            'classes': ('wide',),
+            'fields': ('email', 'password', 'password_confirm')}
+         ),
+    )
+    search_fields = ('email',)
+    ordering = ('email',)
+    filter_horizontal = ()
+
+admin.site.register(AuthUser, AuthUserAdmin)
+admin.site.unregister(Group)
